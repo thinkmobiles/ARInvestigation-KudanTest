@@ -89,7 +89,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the tracking found event.
+		/// Method called when a marker has been found.
+		/// Checks whether the detected marker is the correct one by checking it against the expected ID.
 		/// </summary>
 		/// <param name="trackable">Trackable.</param>
 		public void OnTrackingFound(Trackable trackable)
@@ -108,7 +109,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the tracking lost event.
+		/// Method called when a marker has been lost.
+		/// Checks whether the detected marker is the correct one by checking it against the expected ID.
 		/// </summary>
 		/// <param name="trackable">Trackable.</param>
 		public void OnTrackingLost(Trackable trackable)
@@ -121,7 +123,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the tracking update event.
+		/// Method called every frame the marker has been tracked.
+		/// Updates the position and orientation of the trackable.
 		/// </summary>
 		/// <param name="trackable">Trackable.</param>
 		public void OnTrackingUpdate(Trackable trackable)
@@ -151,7 +154,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the draw gizmos selected event.
+		/// Draw gizmos for this object only if it is selected.
 		/// </summary>
 		void OnDrawGizmosSelected()
 		{
@@ -159,7 +162,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the draw gizmos event.
+		/// Draw gizmos for this object all the time if it has been set to always draw.
 		/// </summary>
 		void OnDrawGizmos()
 		{

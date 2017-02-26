@@ -16,39 +16,41 @@ namespace Kudan.AR
         static KudanTracker kudanTracker;
 
         /// <summary>
-        /// The default width of the camera.
+        /// Default width component of the camera resolution, in pixels.
         /// </summary>
-        private const int DefaultCameraWidth = 640;
+		private const int DefaultCameraWidth = 640;
 		
 		/// <summary>
-		/// The default height of the camera.
+		/// Default height component of the camera resolution, in pixels.
 		/// </summary>
 		private const int DefaultCameraHeight = 480;
 
-		[Tooltip("The Editor API Key Issued by Kudan")]
+		[Tooltip("The key required to run in the Editor. You can get an Editor key by clicking the 'Get Editor API Key' button below")]
 		/// <summary>
-		/// The editor API key.
+		/// The license key used to run the plugin in the Editor. By registering an account on the Kudan website, you can claim one free key for personal use.
+		/// NOTE: This key is separate from the API Key checked on iOS and Android builds. Use _APIKey for those platforms.
 		/// </summary>
 		public string _EditorAPIKey = string.Empty;
 
 		/// <summary>
-		/// Reference to the tracker plugin.
+		/// Reference to the tracker class, which interfaces between Unity and the native frameworks.
 		/// </summary>
 		protected TrackerBase _trackerPlugin;
 
 		/// <summary>
-		/// Array of detected trackables.
+		/// Array containing all trackables that were detected in the previous frame.
 		/// </summary>
 		protected Trackable[] _lastDetectedTrackables;
 		
-		[Tooltip("The API License key issued by Kudan")]
+		[Tooltip("The API License key issued by Kudan. Development keys can be obtained from https://wiki.kudan.eu/Development_License_Keys. Production keys can be bought at https://www.kudan.eu/pricing/")]
 		/// <summary>
-		/// The API License key.
+		/// The API License key used to run the plugin on mobile platforms. Development keys can be obtained from https://wiki.kudan.eu/Development_License_Keys. 
+		/// In order to publish an app using the Kudan plugin to the app store, a license is required. Publish keys can be bought at https://www.kudan.eu/pricing/.
 		/// </summary>
 		public string _APIKey = string.Empty;
 
 		/// <summary>
-		/// The default tracking method used by the tracker on startup.
+		/// The default tracking method used by the tracker when the app starts.
 		/// </summary>
 		public TrackingMethodBase _defaultTrackingMethod;
 
@@ -58,10 +60,34 @@ namespace Kudan.AR
 		public TrackingMethodBase[] _trackingMethods;
 
 		/// <summary>
-		/// Sets the Marker Recovery Mode.
-		/// Enabling this will help with recovering a lost marker, however this comes at the cost of slightly more CPU usage.
+		/// Setting this to true gets the front-facing camera instead of defaulting to the back-facing camera.
+		/// NOTE: This only applies to mobile devices. In the Editor use the WebCamID instead.
+		/// </summary>
+		public bool _useFrontFacingCameraOnMobile;
+
+		/// <summary>
+		/// Whether or not Marker Recovery Mode is enabled.
+		/// This feature allows for quick re-detection of a marker after it has been lost.
+		/// It is also easier to re-detect the marker from shallower angles and greater distances.
+		/// 
+		/// NOTE: The Recovery Mode uses slightly more CPU power while tracking. 
 		/// </summary>
 		public bool _markerRecoveryMode;
+
+		/// <summary>
+		/// Whether or not the markers that are loaded are automatically cropped of the redundant parts of the image e.g. white border around the image in the middle.
+		/// This allows images containing large borders to be used without sacrificing tracking resolution.
+		/// Cropping is automatic and makes no difference to how the trackable objects are used, the tracked region will never look cropped.
+		/// </summary>
+		public bool _markerAutoCrop;
+
+		/// <summary>
+		/// Whether the markers should be used with Extensibility turned on. Please note this should only be used with stationary markers. That means that if your marker at all moves, you should not use this mode.
+		/// Extended Tracking and Detection is a feature where trackables can be extended by automatically creating new markers from the surrounding scene. 
+		/// This means that after being expanded, trackables can be detected and tracked from much further away.
+		/// Enabling this feature will use slightly more memory space.
+		/// </summary>
+		public bool _markerExtensibility;
 
 		[Tooltip("Don't destroy between level loads")]
 		/// <summary>
@@ -70,24 +96,24 @@ namespace Kudan.AR
 		public bool _makePersistent = true;
 
 		/// <summary>
-		/// Whether or not to start initialise this tracker when it is loaded.
+		/// Whether or not to initialise this tracker when it is loaded.
 		/// </summary>
 		public bool _startOnEnable = true;
 
 		/// <summary>
-		/// Whether or not to apply the projection matrix.
+		/// Whether or not to apply the projection matrix of the tracker to the camera.
 		/// </summary>
 		public bool _applyProjection = true;
 
-		[Tooltip("The camera to apply the projection matrix to. If left blank this will use the main camera.")]
+		[Tooltip("The camera to apply the projection matrix to. If left blank this will use the main camera")]
 		/// <summary>
-		/// The camera to apply the projection matrix to.
+		/// The camera to apply the projection matrix to. If left blank, this will use the main camera.
 		/// </summary>
 		public Camera _renderingCamera;
 
-		[Tooltip("The renderer to draw the tracking texture to.")]
+		[Tooltip("The renderer to draw the camera texture to")]
 		/// <summary>
-		/// The renderer to draw the tracking texture to.
+		/// Reference to the Mesh Renderer component of the object the camera texture is being drawn to.
 		/// </summary>
 		public Renderer _background;
 
@@ -98,7 +124,7 @@ namespace Kudan.AR
 
 		[Range(1, 4)]
 		/// <summary>
-		/// The size of the debug GUI.
+		/// Overall size of the debug GUI on the screen.
 		/// </summary>
 		public int _debugGUIScale = 1;
 
@@ -109,12 +135,6 @@ namespace Kudan.AR
 		public Shader _debugFlatShader;
 
 		/// <summary>
-		/// ArbiTracker floor height
-		/// </summary>
-		protected float _floorHeight = 200.0f;
-
-
-		/// <summary>
 		/// Gets the interface exposing the Kudan API for those that need scripting control.
 		/// </summary>
 		public TrackerBase Interface
@@ -123,7 +143,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// The current tracking method.
+		/// The current tracking method being used by the tracker.
 		/// </summary>
 		private TrackingMethodBase _currentTrackingMethod;
 
@@ -135,24 +155,17 @@ namespace Kudan.AR
 			get { return _currentTrackingMethod; }
 		}
 
-#if UNITY_EDITOR
+        #if UNITY_EDITOR
 		/// <summary>
-		/// The index of the toolbar.
-		/// </summary>
-		private int _toolbarIndex;
-
-		/// <summary>
-		/// If you have more than one webcam you can change your prefered webcam ID here.
-		/// ID is of the webcam used in Play Mode.
+		/// If you have more than one webcam connected to your machine you can change your prefered webcam ID here.
+		/// NOTE: This only applies to the Unity Editor. To change the camera used on Mobile devices, change "Use Front Facing Camera On Mobile" instead.
 		/// </summary>
 		[Range(0, 10)]
-		[Tooltip ("If you have more than one webcam you can change your prefered webcam ID here.")]
+		[Tooltip ("If you have more than one webcam you can change your prefered webcam ID here")]
 		public int _playModeWebcamID;
 
-
-
 		/// <summary>
-		/// Checks the validity of the license key.
+		/// Checks that the license key required to use the native framework is valid.
 		/// </summary>
 		private void checkLicenseKeyValidity() 
 		{
@@ -160,20 +173,21 @@ namespace Kudan.AR
 
 			if (result)
             {
-				Debug.Log ("[KudanAR] Your Bundle License Key Is Valid");
+				Debug.Log ("[KudanAR] Your Native API Key Is Valid for Bundle ID: " + PlayerSettings.bundleIdentifier);
 			}
             else
             {
-				Debug.LogError ("[KudanAR] License Key is INVALID for Bundle: "+ PlayerSettings.bundleIdentifier);
+				Debug.LogError ("[KudanAR] Your Native API Key is INVALID for Bundle ID: "+ PlayerSettings.bundleIdentifier);
 			}
 		}
 
 		/// <summary>
-		/// Checks the editor license key.
+		/// Checks that the license key required to use the plugin in the Editor is valid.
 		/// </summary>
 		private void checkEditorLicenseKey() 
 		{
 			bool result = NativeInterface.SetUnityEditorApiKey (_EditorAPIKey.Trim());
+
 			if (result)
 			{
 				Debug.Log ("[KudanAR] Editor Play Mode Key is Valid");
@@ -183,48 +197,44 @@ namespace Kudan.AR
 				Debug.LogError ("[KudanAR] Editor Play Mode Key is NOT Valid");
 			}
 		}
-#endif
+        #endif
 
 		/// <summary>
-		/// Gets the appropriate tracker Plugin for the platform being used
+		/// Awake is called once when the script instance is being loaded.
 		/// </summary>
-		void GetPlugin ()
+		void Awake()
 		{
-			#if UNITY_EDITOR_OSX
-				_trackerPlugin = new TrackerOSX();
-				checkEditorLicenseKey();
-				checkLicenseKeyValidity();
-			#elif UNITY_EDITOR_WIN
-				_trackerPlugin = new TrackerWindows();	
-				checkEditorLicenseKey();
-				checkLicenseKeyValidity();
-			#elif UNITY_IOS
-				_trackerPlugin = new TrackeriOS(_background);
-			#elif UNITY_ANDROID
-				_trackerPlugin = new TrackerAndroid(_background);
-			#endif 
+			// If there is no KudanTracker currently in the scene when it loads, make sure that this persists between scenes, then set the static reference of KudanTracker to this object.
+			if (kudanTracker == null)
+			{
+				if (_makePersistent)
+				{
+					DontDestroyOnLoad(gameObject);
+				}
+				kudanTracker = this;
+			}
+			// If KudanTracker already exists in the scene, but this is not it, destroy this gameobject, because there should only be one KudanTracker in a scene at any one time.
+			else if (kudanTracker != this)
+			{
+				Debug.LogError ("There should only be one Kudan Tracker active at once.");
+				gameObject.SetActive (false);
+				Destroy(gameObject);
+			}
 		}
 
 		/// <summary>
-		/// Start this instance.
+		/// Start is called only once on the frame the script is enabled.
 		/// </summary>
 		void Start()
 		{
-			// Check there is only a single instance of this component
-			if (FindObjectsOfType<KudanTracker>().Length > 1)
-			{
-				Debug.LogError("[KudanAR] There should only be one instance of KudanTracker active at a time");
-				return;
-			}
-
 			CreateDebugLineMaterial();
 
 			// Create the platform specific plugin interface
-			GetPlugin();
+			_trackerPlugin = new Tracker (_background);
 
 			if (_trackerPlugin == null)
 			{
-				Debug.LogError("[KudanAR] Failed to initialise");
+				Debug.LogError("[KudanAR] Failed to get tracker plugin");
 				this.enabled = false;
 				return;
 			}
@@ -237,72 +247,91 @@ namespace Kudan.AR
 			}
 			else
 			{
+				#if UNITY_EDITOR
+				// Check the Editor API Key and validity of the Native API Key
+				if (!string.IsNullOrEmpty(_EditorAPIKey))
+				{
+					checkEditorLicenseKey();
+				}
+				else
+				{
+					Debug.LogError("Editor API Key field is Empty");
+				}
+
+				if (!string.IsNullOrEmpty(_APIKey))
+				{
+					checkLicenseKeyValidity();
+				}
+				else
+				{
+					Debug.LogWarning("API Key field is Empty");
+				}
+				#else
 				// Set the API key
 				if (!string.IsNullOrEmpty(_APIKey))
 				{
 					_trackerPlugin.SetApiKey (_APIKey, Application.bundleIdentifier);
 				}
+				else
+				{
+					Debug.LogError("API Key field is Empty");
+				}
+				#endif
 				
 				// Print plugin version
 				string version = _trackerPlugin.GetPluginVersion();
 				float nativeVersion = _trackerPlugin.GetNativePluginVersion();
-				Debug.Log(string.Format("[KudanAR] Initialising v{0} (native v{1})", version, nativeVersion));
+				Debug.Log(string.Format("[KudanAR] Initialising Plugin Version {0} (Native Framework Version {1})", version, nativeVersion));
 
-				// Don't destroy this component between level loads
-				if (_makePersistent)
-				{
-					GameObject.DontDestroyOnLoad(this.gameObject);
-				}
-
+				// Initialise all included tracking methods
 				foreach (TrackingMethodBase method in _trackingMethods)
 				{
 					method.Init();
 				}
+
 				_trackerPlugin.SetMarkerRecoveryStatus(_markerRecoveryMode);
+				_trackerPlugin.SetMarkerAutoCropStatus (_markerAutoCrop);
+				_trackerPlugin.SetMarkerExtensibilityStatus (_markerExtensibility);
 
 				ChangeTrackingMethod(_defaultTrackingMethod);
 
-				// Start the camera
-				#if UNITY_EDITOR
-				if (_trackerPlugin.StartInputFromCamera(_playModeWebcamID, DefaultCameraWidth, DefaultCameraHeight)) 
-				#else
-				if (_trackerPlugin.StartInputFromCamera(0, DefaultCameraWidth, DefaultCameraHeight)) 
-				#endif
-				{
-					// Start tracking
-					if (_startOnEnable)
-					{
-						_trackerPlugin.StartTracking();
-					}
-				}
-				else
-				{
-					Debug.LogError("[KudanAR] Failed to start camera, is it already in use?");
-				}
+                if (_trackerPlugin.GetNumCameras() > 0)
+                {
+                    // Start the camera
+                    #if UNITY_EDITOR
+                    if (_trackerPlugin.StartInputFromCamera(_playModeWebcamID, DefaultCameraWidth, DefaultCameraHeight))
+                    #else
+				    int cameraIndex = 0;
+
+					// As rear-facing cameras are always put first in the array on iOS and Android and front-facing cameras at the end, when wanting the front-facing camera, get the camera at the end of the array.
+				    if (_useFrontFacingCameraOnMobile)
+				    {
+					    cameraIndex = _trackerPlugin.GetNumCameras() - 1;
+				    }
+
+				    if (_trackerPlugin.StartInputFromCamera(cameraIndex, DefaultCameraWidth, DefaultCameraHeight))
+                    #endif
+                    {
+                        // Start tracking
+                        if (_startOnEnable)
+                        {
+                            _trackerPlugin.StartTracking();
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError("[KudanAR] Failed to start camera, is it already in use?");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("No Cameras Detected");
+                }
 			}
 		}
 
-
-        void Awake()
-        {
-            // If there is no KudanTracker currently in the scene when it loads, make sure that this persists between scenes, then set the static reference of KudanTracker to this object.
-            if (kudanTracker == null)
-            {
-                if (_makePersistent)
-                {
-                    DontDestroyOnLoad(gameObject);
-                    kudanTracker = this;
-                }
-            }
-            // If KudanTracker already exists in the scene, but this is not it, destroy this gameobject, because there should only be one KudanTracker in a scene at any one time.
-            else if (kudanTracker != this)
-            {
-                Destroy(gameObject);
-            }
-        }
-
         /// <summary>
-        /// Raises the enable event.
+		/// Method called when the script becomes enabled and active.
         /// </summary>
         void OnEnable()
 		{
@@ -313,7 +342,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the disable event.
+		/// Method called when the script becomes disabled or inactive.
+		/// This is also called when the object is destroyed and can be used for any cleanup code.
 		/// </summary>
 		void OnDisable()
 		{
@@ -321,9 +351,15 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the application focus event.
+		/// OnApplicationFocus is called when the application gains or loses focus. 
+		/// When the user goes to the home screen or to another app, focus is lost, and this method is called with the argument set to false.
+		/// When the user re-opens the app and focus is gained, this method is called with the argument set to true.
+		/// 
+		/// NOTE: On Android, when the on-screen keyboard is enabled, it causes a OnApplicationFocus( false ) event. 
+		/// Additionally, if you press Home at the moment the keyboard is enabled, the OnApplicationFocus() event is not called, but OnApplicationPause() is called instead.
 		/// </summary>
-		/// <param name="focusStatus">If set to <c>true</c> focus status.</param>
+		/// 
+		/// <param name="focusStatus">True if the app has gained focus, false if it has lost focus.</param>
 		void OnApplicationFocus(bool focusStatus)
 		{
 			if (_trackerPlugin != null)
@@ -333,9 +369,15 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the application pause event.
+		/// OnApplicationPause is called when the application loses or gains focus.
+		/// When the user goes to the home screen or to another app, focus is lost, and this method is called with the argument set to true.
+		/// When the user re-opens the app and focus is gained, this method is called with the argument set to false.
+		/// 
+		/// NOTE: On Android, when the on-screen keyboard is enabled, it causes a OnApplicationFocus( false ) event. 
+		/// Additionally, if you press "Home" at the moment the keyboard is enabled, the OnApplicationFocus() event is not called, but OnApplicationPause() is called instead.
 		/// </summary>
-		/// <param name="pauseStatus">If set to <c>true</c> pause status.</param>
+		/// 
+		/// <param name="pauseStatus">True if the app has paused (lost focus), false if it is not paused (gained focus).</param>
 		void OnApplicationPause(bool pauseStatus)
 		{
 			if (_trackerPlugin != null)
@@ -345,7 +387,42 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Starts the tracking.
+		/// Adds a single trackable to the tracker from image data, names it with the given string, and applies any settings. This method uses the default values for whether this trackable should use extended tracking or auto-cropping.
+		/// </summary>
+		/// <returns><c>true</c>, if trackable was successfully added to the tracker, <c>false</c> otherwise.</returns>
+		/// <param name="data">The array of image data.</param>
+		/// <param name="id">A name applied to the trackable to identify it in the tracker while the app is running.</param>
+		public void AddTrackable(byte[] data, string id)
+		{
+			_trackerPlugin.AddTrackable (data, id, _markerExtensibility, _markerAutoCrop);
+		}
+
+		/// <summary>
+		/// Adds a single trackable to the tracker from image data, names it with the given string, and sets whether the trackable should utilise extended tracking or auto-cropping. 
+		/// </summary>
+		/// <returns><c>true</c>, if trackable was successfully added to the tracker, <c>false</c> otherwise.</returns>
+		/// <param name="data">The array of image data.</param>
+		/// <param name="id">A name applied to the trackable to identify it in the tracker while the app is running.</param>
+		/// <param name="extensible">If set to <c>true</c> the loaded trackable will use extended tracking.</param>
+		/// <param name="autocrop">If set to <c>true</c> the loaded trackable will use auto-cropping.</param>
+		public void AddTrackable(byte[] data, string id, bool extensible, bool autocrop)
+		{
+			_trackerPlugin.AddTrackable (data, id, extensible, autocrop);
+		}
+
+		/// <summary>
+		/// Adds a .KARMarker data set to the tracker with a given name.
+		/// </summary>
+		/// <returns><c>true<c>/c>, if the data set was successfully added to the tracker, <c>false</c> otherwise.</returns>
+		/// <param name="pathToFile">The filepath pointing to the data set.</param>
+		/// <param name="id">A string used to identify the data set while the app is running.</param>
+		public void AddTrackableSet(string pathToFile, string ID)
+		{
+			_trackerPlugin.AddTrackableSet (pathToFile, ID);
+		}
+
+		/// <summary>
+		/// Start tracking with this tracker.
 		/// </summary>
 		public void StartTracking()
 		{
@@ -356,7 +433,7 @@ namespace Kudan.AR
 		}
 		
 		/// <summary>
-		/// Stops the tracking.
+		/// Stop tracking with this tracker.
 		/// </summary>
 		public void StopTracking()
 		{
@@ -371,6 +448,7 @@ namespace Kudan.AR
 			{
 				camera = Camera.main;
 			}
+
 			if (camera != null)
 			{
 				camera.ResetProjectionMatrix();
@@ -378,7 +456,7 @@ namespace Kudan.AR
 		}
 		
 		/// <summary>
-		/// Changes the tracking method.
+		/// Changes the current tracking method to the given tracking method.
 		/// </summary>
 		/// <param name="newTrackingMethod">New tracking method.</param>
 		public void ChangeTrackingMethod(TrackingMethodBase newTrackingMethod)
@@ -396,19 +474,27 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Starts Arbitrary Tracking.
+		/// Start ArbiTrack on the current platform.
 		/// </summary>
-		/// <param name="position">Position.</param>
-		/// <param name="orientation">Orientation.</param>
+		/// <param name="position">Position to start tracking at.</param>
+		/// <param name="orientation">Orientation to start tracking at.</param>
         public void ArbiTrackStart(Vector3 position, Quaternion orientation)
         {
             _trackerPlugin.ArbiTrackStart(position, orientation);
         }
 
 		/// <summary>
-		/// Checks if Arbitrary Tracking is running.
+		/// Stop ArbiTrack and return to placement mode.
 		/// </summary>
-		/// <returns><c>true</c>, if Arbitrary Tracking is running, <c>false</c> otherwise.</returns>
+		public void ArbiTrackStop()
+		{
+			_trackerPlugin.ArbiTrackStop ();
+		}
+
+		/// <summary>
+		/// Checks if arbitrary tracking is currently running.
+		/// </summary>
+		/// <returns><c>true<c>/c>, if ArbiTrack is running <c>false</c> if not.</returns>
         public bool ArbiTrackIsTracking()
         {
             return _trackerPlugin.ArbiTrackIsTracking();
@@ -417,8 +503,8 @@ namespace Kudan.AR
 		/// <summary>
 		/// Gets the current position and orientation of the floor, relative to the device.
 		/// </summary>
-		/// <param name="position">Position.</param>
-		/// <param name="orientation">Orientation.</param>
+		/// <param name="position">Position of the floor, relative to the camera.</param>
+		/// <param name="orientation">Orientation of the floor, relative to the camera.</param>
         public void FloorPlaceGetPose(out Vector3 position, out Quaternion orientation)
         {
             _trackerPlugin.FloorPlaceGetPose(out position, out orientation);
@@ -427,21 +513,21 @@ namespace Kudan.AR
 		/// <summary>
 		/// Gets the current position and orientation of the markerless driver being tracked.
 		/// </summary>
-		/// <param name="position">Position.</param>
-		/// <param name="orientation">Orientation.</param>
+		/// <param name="position">The position of the markerless transform driver.</param>
+		/// <param name="orientation">The orientation of the markerless transform driver.</param>
         public void ArbiTrackGetPose(out Vector3 position, out Quaternion orientation)
         {
             _trackerPlugin.ArbiTrackGetPose(out position, out orientation);
         }
 
 		/// <summary>
-		/// Raises the destroy event.
+		/// Method called when this behaviour is scheduled to be destroyed.
+		/// OnDestroy will only be called on objects that have previously been active.
 		/// </summary>
 		void OnDestroy()
 		{
 			if (_trackerPlugin != null)
 			{
-				StopTracking();
 				_trackerPlugin.StopInput();
 				_trackerPlugin.DeinitPlugin();
 				_trackerPlugin = null;
@@ -455,7 +541,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the pre render event.
+		/// OnPreRender is called before a camera starts rendering the scene.
+		/// This method is only called if the script is enabled and attached to the camera.
 		/// </summary>
 		void OnPreRender()
 		{
@@ -463,7 +550,27 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Update this instance.
+		/// OnPostRender is called after a camera has finished rendering the scene.
+		/// This method is only called if the script is enabled and attached to the camera.
+		/// </summary>
+		void OnPostRender()
+		{
+			#if UNITY_EDITOR
+			#elif UNITY_ANDROID
+			if (_trackerPlugin != null)
+			{
+				_trackerPlugin.PostRender();
+			}
+			#endif
+
+			if (_displayDebugGUI)
+			{
+				RenderAxes();
+			}
+		}
+
+		/// <summary>
+		/// Update is called once each frame, if the MonoBehaviour is enabled.
 		/// </summary>
 		void Update()
 		{
@@ -505,37 +612,9 @@ namespace Kudan.AR
 				}
 			}
 		}
-
-#if UNITY_ANDROID
+			
 		/// <summary>
-		/// Raises the post render event.
-		/// </summary>
-		void OnPostRender()
-		{
-			if (_trackerPlugin != null)
-			{
-				_trackerPlugin.PostRender();
-			}
-
-			if (_displayDebugGUI)
-			{
-				RenderAxes();
-			}
-		}
-#else
-		/// <summary>
-		/// Raises the post render event.
-		/// </summary>
-		void OnPostRender()
-		{
-			if (_displayDebugGUI)
-			{
-				RenderAxes();
-			}
-		}
-#endif
-		/// <summary>
-		/// Processes new trackables.
+		/// Updates the array of trackables currently being detected.
 		/// </summary>
 		private void ProcessNewTrackables()
 		{
@@ -543,22 +622,25 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Determines whether this instance has active tracking data.
+		/// Determines whether or not the tracker is currently detecting a trackable.
 		/// </summary>
-		/// <returns><c>true</c> if this instance has active tracking data; otherwise, <c>false</c>.</returns>
+		/// <returns><c>true</c> if the tracker tracked at least one trackable this frame, <c>false</c> otherwise.</returns>
 		public bool HasActiveTrackingData()
 		{
 			return (_trackerPlugin != null && _trackerPlugin.IsTrackingRunning() && _lastDetectedTrackables != null && _lastDetectedTrackables.Length > 0);
 		}
 
-
+		/// <summary>
+		/// Sets the position of the floor plane that ArbiTrack uses as a reference for tracking.
+		/// </summary>
+		/// <param name="floorHeight">How far from the camera the floor is positioned.</param>
 		public void SetArbiTrackFloorHeight(float floorHeight)
 		{
 			_trackerPlugin.SetArbiTrackFloorHeight (floorHeight);
 		}
 
 		/// <summary>
-		/// Raises the draw gizmos event.
+		/// Draws wireframe shapes in the editor for debugging purposes.
 		/// </summary>
 		void OnDrawGizmos()
 		{
@@ -649,7 +731,7 @@ namespace Kudan.AR
 		}
 		
 		/// <summary>
-		/// Raises the GUI event.
+		/// Method used to draw the debug GUI in the upper-left portion of the screen.
 		/// </summary>
 		void OnGUI()
 		{
@@ -658,11 +740,13 @@ namespace Kudan.AR
 			{
 				GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(_debugGUIScale, _debugGUIScale, 1f));
 				GUILayout.BeginVertical("box");
-#if UNITY_EDITOR
+
+				#if UNITY_EDITOR
 				GUILayout.Label("KUDAN AR", UnityEditor.EditorStyles.boldLabel);
-#else
+				#else
 				GUILayout.Label("KUDAN AR");
-#endif
+				#endif
+
 				// Tracking status
 				if (_trackerPlugin != null && _trackerPlugin.IsTrackingRunning())
 				{
@@ -715,5 +799,83 @@ namespace Kudan.AR
 				_lineMaterial.hideFlags = HideFlags.HideAndDontSave;
 			}
 		}
+
+		#region Screenshot methods
+		/// <summary>
+		/// Takes a screenshot of the camera feed and any projected objects, without any UI.
+		/// </summary>
+		public void takeScreenshot()
+		{
+			StartCoroutine (Screenshot ());
+		}
+		
+		IEnumerator Screenshot()
+		{
+			List<GameObject> uiObjects = FindGameObjectsInUILayer ();
+
+			for (int i = 0; i < uiObjects.Count; i++)
+			{
+				uiObjects [i].SetActive (false);
+			}
+
+			bool wasDebug = false;
+			if (_displayDebugGUI) 
+			{
+				wasDebug = true;
+				_displayDebugGUI = false;
+			}
+
+			yield return new WaitForEndOfFrame ();
+
+			RenderTexture RT = new RenderTexture (Screen.width, Screen.height, 24);
+
+			GetComponent<Camera> ().targetTexture = RT;
+
+			Texture2D screen = new Texture2D (RT.width, RT.height, TextureFormat.RGB24, false);
+			screen.ReadPixels (new Rect (0, 0, RT.width, RT.height), 0, 0);
+
+			byte[] bytes = screen.EncodeToJPG ();
+
+			string filePath = Application.dataPath + "/Screenshot - " + Time.unscaledTime + ".jpg";
+			System.IO.File.WriteAllBytes (filePath, bytes);
+
+			Debug.Log ("Saved screenshot at: " + filePath);
+
+			for (int i = 0; i < uiObjects.Count; i++) 
+			{
+				uiObjects [i].SetActive (true);
+			}
+
+			if (wasDebug) 
+			{
+				_displayDebugGUI = true;
+			}
+
+			GetComponent<Camera> ().targetTexture = null;
+			Destroy(RT);
+		}
+
+		List<GameObject> FindGameObjectsInUILayer()
+		{
+			GameObject[] goArray = FindObjectsOfType<GameObject>();
+
+			List<GameObject> uiList = new List<GameObject> ();
+
+			for (var i = 0; i < goArray.Length; i++) 
+			{
+				if (goArray[i].layer == 5)
+				{
+					uiList.Add(goArray[i]);
+				}
+			}
+
+			if (uiList.Count == 0) 
+			{
+				return null;
+			}
+
+			return uiList;
+		}
+		#endregion
 	}
 };

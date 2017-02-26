@@ -48,7 +48,8 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the tracking update event.
+		/// Method called every frame ArbiTrack is running.
+		/// Updates the position and orientation of the trackable.
 		/// </summary>
 		/// <param name="trackable">Trackable.</param>
 		public void OnTrackingUpdate(Trackable trackable)

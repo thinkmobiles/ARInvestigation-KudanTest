@@ -88,7 +88,10 @@
 
 			float3 ycbcr2rgb(float3 yuv)
 			{
-				return mul(ycbcr_xfrm, yuv + ycbcr_offs);
+   				float b = 1.164 * (-0.0625 + yuv.r) + 1.596 * (-0.5 + yuv.g); 
+				float g = 1.164 * (-0.0625 + yuv.r) - 0.392 * (-0.5 + yuv.b) - 0.813 * (-0.5 + yuv.g);
+				float r = 1.164 * (-0.0625 + yuv.r) + 2.017 * (-0.5 + yuv.b);
+   				return float3(r, g, b);
 			}
 
 			fixed4 frag(v2f i) : SV_Target

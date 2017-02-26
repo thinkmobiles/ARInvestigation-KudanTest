@@ -68,13 +68,15 @@ namespace Kudan.AR
 		/// </summary>
 		void StopInput();
 
+		//bool AddTrackable (byte[] data, string id);
+
 		/// <summary>
 		/// Adds a trackable at a given path with a given ID.
 		/// </summary>
 		/// <returns><c>true</c>, if trackable was added, <c>false</c> otherwise.</returns>
 		/// <param name="path">Path.</param>
 		/// <param name="id">Identifier.</param>
-		bool AddTrackable(string path, string id);
+		bool AddTrackableSet(string path, string id);
 
 		/// <summary>
 		/// Adds a trackable with a given data set and ID.
@@ -82,7 +84,7 @@ namespace Kudan.AR
 		/// <returns><c>true</c>, if trackable was added, <c>false</c> otherwise.</returns>
 		/// <param name="data">Data.</param>
 		/// <param name="id">Identifier.</param>
-		bool AddTrackable(byte[] data, string id);
+		bool AddTrackableSet(byte[] data, string id);
 
 		/// <summary>
 		/// Gets the number of trackables.
@@ -173,9 +175,16 @@ namespace Kudan.AR
 		/// </summary>
 		void updateCam ();
 
-
+		// Marker Recovery status
 		bool GetMarkerRecoveryStatus();
-
 		void SetMarkerRecoveryStatus(bool status);
+
+		// AutoCrop Status
+		bool GetMarkerAutoCropStatus();
+		void SetMarkerAutoCropStatus (bool status);
+
+		// Extended Marker & Detection status
+		bool GetMarkerExtensibilityStatus ();
+		void SetMarkerExtensibilityStatus (bool status);
 	}
 };

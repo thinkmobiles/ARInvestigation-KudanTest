@@ -15,9 +15,9 @@ namespace Kudan.AR
 		public KudanTracker _kudanTracker;
 
 		/// <summary>
-		/// The name of this tracking method.
+		/// The name of the tracking method.
 		/// </summary>
-		/// <value>The name.</value>
+		/// <value>The tracking method's name.</value>
 		public abstract string Name { get; }
 
 		/// <summary>
@@ -27,7 +27,7 @@ namespace Kudan.AR
 		public abstract int TrackingMethodId { get; }
 
 		/// <summary>
-		/// Is tracking enabled?
+		/// Whether or not tracking is currently enabled for this tracking method.
 		/// </summary>
 		protected bool _isTrackingEnabled;
 
@@ -41,16 +41,16 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Gets a value indicating whether tracking is enabled.
+		/// Gets whether or not tracking is currently enabled for this tracking method.
 		/// </summary>
-		/// <value><c>true</c> if tracking enabled; otherwise, <c>false</c>.</value>
+		/// <value><c>true</c> if tracking is enabled; otherwise, <c>false</c>.</value>
 		public bool TrackingEnabled
 		{
 			get { return _isTrackingEnabled; }
 		}
 
 		/// <summary>
-		/// Awake this instance.
+		/// Awake is called once when the scene loads.
 		/// </summary>
 		void Awake()
 		{
@@ -65,14 +65,14 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Initialise this instance.
+		/// Initialise this tracking method.
 		/// </summary>
 		public virtual void Init()
 		{
 		}
 
 		/// <summary>
-		/// Starts tracking.
+		/// Start tracking using this tracking method.
 		/// </summary>
 		public virtual void StartTracking()
 		{
@@ -90,7 +90,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Stops tracking.
+		/// Stop tracking with this tracking method.
 		/// </summary>
 		public virtual void StopTracking()
 		{
@@ -115,9 +115,9 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Draws the debug GUI.
+		/// Draws the debug GUI at the given scale.
 		/// </summary>
-		/// <param name="uiScale">User interface scale.</param>
+		/// <param name="uiScale">Scale of the GUI.</param>
 		public virtual void DebugGUI(int uiScale)
 		{
 		}

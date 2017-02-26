@@ -34,6 +34,9 @@ namespace Kudan.AR
 		/// <returns>The plugin version.</returns>
 		public static extern float GetPluginVersion();
 
+		//[DllImport(PLUGIN_FILE)]
+		//public static extern bool AddTrackable (byte[] data, string id);
+
 		[DllImport(PLUGIN_FILE)]
 		/// <summary>
 		/// Adds a set of Trackable Data.
@@ -125,6 +128,35 @@ namespace Kudan.AR
 		/// <param name="status">Marker recovery is enabled if set to <c>true</c>, otherwise flow recovery is disabled. Default is false.</param>
 		public static extern void SetMarkerRecoveryStatus(bool status);
 
+		[DllImport(PLUGIN_FILE)]
+		/// <summary>
+		/// Sets the extensability for all of the markers being added after this flag has been changed
+		/// </summary>
+		/// <param name="status">If set to <c>true</c> status.</param>
+		public static extern void SetExtensibleMarkers(bool status);
+
+		[DllImport(PLUGIN_FILE)]
+		/// <summary>
+		/// Gets the extensible markers status.
+		/// </summary>
+		/// <returns><c>true</c>, if extensible markers status was gotten, <c>false</c> otherwise.</returns>
+		public static extern bool GetExtensibleMarkersStatus();
+
+		[DllImport(PLUGIN_FILE)]
+		/// <summary>
+		/// Sets AutoCrop for the newly added markers after this flag has been changed
+		/// </summary>
+		/// <param name="status">If set to <c>true</c> status.</param>
+		public static extern void SetAutoCropMarkers(bool status);
+
+		[DllImport(PLUGIN_FILE)]
+		/// <summary>
+		/// Gets the auto crop marker status.
+		/// </summary>
+		/// <returns><c>true</c>, if auto crop marker status was gotten, <c>false</c> otherwise.</returns>
+		public static extern bool GetAutoCropMarkerStatus();
+
+
         [DllImport(PLUGIN_FILE)]
 		/// <summary>
 		/// Gets the current position and rotation of the markerless driver being tracked.
@@ -138,6 +170,12 @@ namespace Kudan.AR
 		/// </summary>
 		/// <param name="pose">Pose.</param>
         public static extern void ArbiTrackStart(float[] pose);
+
+		[DllImport(PLUGIN_FILE)]
+		/// <summary>
+		/// Stops ArbiTrack
+		/// </summary>
+		public static extern void ArbiTrackStop();
 
         [DllImport(PLUGIN_FILE)]
 		/// <summary>

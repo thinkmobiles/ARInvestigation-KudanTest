@@ -12,34 +12,34 @@ namespace Kudan.AR
 	public class TrackingMethodMarker : TrackingMethodBase
 	{
 		/// <summary>
-		/// Array of markers.
+		/// Array containing all sets of trackable data to be loaded into the tracker.
 		/// </summary>
 		public TrackableData[] _markers;
 
 		/// <summary>
-		/// The found marker event.
+		/// Event triggered the first frame a trackable is detected.
 		/// </summary>
 		public MarkerFoundEvent _foundMarkerEvent;
 
 		/// <summary>
-		/// The lost marker event.
+		/// Event trigged the first frame a trackable is not detected after being detected.
 		/// </summary>
 		public MarkerLostEvent _lostMarkerEvent;
 
 		/// <summary>
-		/// The update marker event.
+		/// Event triggered each frame in which a trackable is detected.
 		/// </summary>
 		public MarkerUpdateEvent _updateMarkerEvent;
 
 		/// <summary>
-		/// Array of last detected trackables.
+		/// Array of all trackables detected in the previous frame.
 		/// </summary>
 		private Trackable[] _lastDetectedTrackables;
 	
 		/// <summary>
 		/// The name of this tracking method.
 		/// </summary>
-		/// <value>The name.</value>
+		/// <value>The name of this tracking method is "Marker".</value>
 		public override string Name
 		{
 			get { return "Marker"; }
@@ -48,14 +48,14 @@ namespace Kudan.AR
 		/// <summary>
 		/// The ID of this tracking method.
 		/// </summary>
-		/// <value>The tracking method identifier.</value>
+		/// <value>The ID of this tracking method is 0.</value>
 		public override int TrackingMethodId
 		{
 			get { return 0; }
 		}
 
 		/// <summary>
-		/// Initialise this instance.
+		/// Initialise this tracking method by loading all markers within the referenced data sets.
 		/// </summary>
 		public override void Init()
 		{
@@ -63,7 +63,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Loads the marker data.
+		/// Loads the marker data from the array of trackable data sets.
 		/// </summary>
 		private void LoadMarkers()
 		{
@@ -75,7 +75,7 @@ namespace Kudan.AR
 					{
 						Debug.LogWarning("[KudanAR] Marker has no data assigned");
 					}
-					else if (!Plugin.AddTrackable(marker.Data, marker.id))
+					else if (!Plugin.AddTrackableSet(marker.Data, marker.id))
 					{
 						Debug.LogError("[KudanAR] Error adding trackable " + marker.id);
 					}
@@ -88,7 +88,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Processes the current frame.
+		/// Processes the current frame and checks which trackables have been detected this frame.
 		/// </summary>
 		public override void ProcessFrame()
 		{
@@ -96,7 +96,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Stops tracking.
+		/// Stop this tracking method. Any markers currently detected will be lost.
 		/// </summary>
         public override void StopTracking()
         {
@@ -116,7 +116,7 @@ namespace Kudan.AR
         }
 
 		/// <summary>
-		/// Processes the new trackables.
+		/// Checks for and processes all trackables detected or lost in the current frame.
 		/// </summary>
         private void ProcessNewTrackables()
 		{
@@ -181,7 +181,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Draws the debug GUI.
+		/// Draw the debug GUI for Marker tracking.
 		/// </summary>
 		/// <param name="uiScale">User interface scale.</param>
 		public override void DebugGUI(int uiScale)
@@ -190,6 +190,10 @@ namespace Kudan.AR
 			GUILayout.Label ("Trackable sets loaded: " + Plugin.GetNumTrackables());
 
 			GUILayout.Label ("Marker Recovery Status: " + Plugin.GetMarkerRecoveryStatus());
+            
+			GUILayout.Label ("Marker Autocrop Status: " + Plugin.GetMarkerAutoCropStatus());
+            
+			GUILayout.Label ("Marker Extensibility Status: " + Plugin.GetMarkerExtensibilityStatus());
 
 			int numDetected = 0;
 			if (_lastDetectedTrackables != null)

@@ -36,7 +36,7 @@ namespace Kudan.AR
 			GUILayout.Space(5f);
 			if (GUILayout.Button("Get Editor API Key"))
 			{
-				Application.OpenURL("https://www.kudan.eu/api/");
+				Application.OpenURL("https://www.kudan.eu/keys/");
 			}
 			GUILayout.Space(5f);
 

@@ -15,7 +15,7 @@ namespace Kudan.AR
 		protected TrackingMethodBase _trackerBase;
 
 		/// <summary>
-		/// Start this instance.
+		/// Start this instance. Registers this trasnsform driver with its tracking method.
 		/// </summary>
 		public virtual void Start()
 		{
@@ -27,7 +27,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Raises the destroy event.
+		/// Method called when the gameObject is destroyed. Unregisters this transform driver from its tracking method.
 		/// </summary>
 		public virtual void OnDestroy()
 		{
@@ -35,7 +35,7 @@ namespace Kudan.AR
 		}
 
 		/// <summary>
-		/// Update this instance.
+		/// Update this transform driver.
 		/// </summary>
 		public virtual void Update()
 		{
